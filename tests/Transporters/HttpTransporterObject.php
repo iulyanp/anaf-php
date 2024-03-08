@@ -8,6 +8,7 @@ use Anaf\Transporters\HttpTransporter;
 use Anaf\ValueObjects\Transporter\BaseUri;
 use Anaf\ValueObjects\Transporter\Headers;
 use Anaf\ValueObjects\Transporter\Payload;
+use Anaf\ValueObjects\Transporter\QueryParams;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Psr7\Request as Psr7Request;
 use GuzzleHttp\Psr7\Response;
@@ -19,12 +20,13 @@ beforeEach(function () {
     $this->http = new HttpTransporter(
         $this->client,
         BaseUri::from('webservicesp.anaf.ro'),
-        Headers::withContentType(ContentType::JSON),
+        Headers::create()->withContentType(ContentType::JSON),
+        QueryParams::create()->withParam('cui', '38744563')
     );
 });
 
 test('request object', function () {
-    $payload = Payload::create('PlatitorTvaRest/api/v7/ws/tva', []);
+    $payload = Payload::create('PlatitorTvaRest/api/v8/ws/tva', []);
 
     $response = new Response(200, [], json_encode([
         'asdf',
@@ -38,7 +40,30 @@ test('request object', function () {
                 ->and($request->getUri())
                 ->getHost()->toBe('webservicesp.anaf.ro')
                 ->getScheme()->toBe('https')
-                ->getPath()->toBe('/PlatitorTvaRest/api/v7/ws/tva');
+                ->getPath()->toBe('/PlatitorTvaRest/api/v8/ws/tva');
+
+            return true;
+        })->andReturn($response);
+
+    $this->http->requestObject($payload);
+});
+
+test('request object from xml', function () {
+    $payload = Payload::upload('prod/FCTEL/rest/upload', 'dummy xml content');
+
+    $response = new Response(200, [
+        'Content-Type' => 'application/xml',
+    ], '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<header xmlns="mfp:anaf:dgti:spv:respUploadFisier:v1" dateResponse="202108051140" ExecutionStatus="0" index_incarcare="3828"/>');
+
+    $this->client
+        ->shouldReceive('sendRequest')
+        ->once()
+        ->withArgs(function (Psr7Request $request) {
+            expect($request->getMethod())->toBe('POST')
+                ->and($request->getUri())
+                ->getScheme()->toBe('https')
+                ->getPath()->toBe('/prod/FCTEL/rest/upload');
 
             return true;
         })->andReturn($response);
@@ -47,7 +72,7 @@ test('request object', function () {
 });
 
 test('request object response', function () {
-    $payload = Payload::create('PlatitorTvaRest/api/v7/ws/tva', []);
+    $payload = Payload::create('PlatitorTvaRest/api/v8/ws/tva', []);
 
     $response = new Response(200, [], json_encode(
         [
@@ -88,7 +113,7 @@ test('request object response', function () {
 });
 
 test('request object tax identification number not found', function () {
-    $payload = Payload::create('PlatitorTvaRest/api/v7/ws/tva', []);
+    $payload = Payload::create('PlatitorTvaRest/api/v8/ws/tva', []);
 
     $response = new Response(200, [], json_encode(
         [
@@ -113,15 +138,16 @@ test('request object tax identification number not found', function () {
 });
 
 test('request object client errors', function () {
-    $payload = Payload::create('PlatitorTvaRest/api/v7/ws/tva', []);
+    $payload = Payload::create('PlatitorTvaRest/api/v8/ws/tva', []);
 
     $baseUri = BaseUri::from('webservicesp.anaf.ro');
-    $headers = Headers::withContentType(ContentType::JSON);
+    $headers = Headers::create()->withContentType(ContentType::JSON);
+    $queryParams = QueryParams::create()->withParam('cui', '38744563');
 
     $this->client
         ->shouldReceive('sendRequest')
         ->once()
-        ->andThrow(new ConnectException('Could not resolve host.', $payload->toRequest($baseUri, $headers)));
+        ->andThrow(new ConnectException('Could not resolve host.', $payload->toRequest($baseUri, $headers, $queryParams)));
 
     expect(fn () => $this->http->requestObject($payload))->toThrow(function (TransporterException $e) {
         expect($e->getMessage())->toBe('Could not resolve host.')
@@ -131,7 +157,7 @@ test('request object client errors', function () {
 });
 
 test('request object serialization errors', function () {
-    $payload = Payload::create('PlatitorTvaRest/api/v7/ws/tva', []);
+    $payload = Payload::create('PlatitorTvaRest/api/v8/ws/tva', []);
 
     $response = new Response(200, [], 'err');
 

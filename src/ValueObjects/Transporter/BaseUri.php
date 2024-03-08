@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace Anaf\ValueObjects\Transporter;
 
-use Anaf\Contracts\Stringable;
+use Anaf\Contracts\StringableContract;
 
 /**
  * @internal
  */
-final class BaseUri implements Stringable
+class BaseUri implements StringableContract
 {
     /**
      * Creates a new Base URI value object.
      */
-    private function __construct(private readonly string $baseUri)
-    {
+    private function __construct(
+        private readonly string $baseUri,
+    ) {
         // ..
     }
 
@@ -32,6 +33,12 @@ final class BaseUri implements Stringable
      */
     public function toString(): string
     {
+        foreach (['http://', 'https://'] as $protocol) {
+            if (str_starts_with($this->baseUri, $protocol)) {
+                return "{$this->baseUri}/";
+            }
+        }
+
         return "https://{$this->baseUri}/";
     }
 }

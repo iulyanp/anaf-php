@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Anaf\ValueObjects;
 
-use Anaf\Contracts\Stringable;
+use Anaf\Contracts\StringableContract;
 
 /**
  * @internal
  */
-final class ResourceUri implements Stringable
+class ResourceUri implements StringableContract
 {
     /**
      * Creates a new ResourceUri value object.
@@ -22,7 +22,15 @@ final class ResourceUri implements Stringable
     /**
      * Creates a new ResourceUri value object that creates the given resource.
      */
-    public static function retreiveInfo(string $resource): self
+    public static function create(string $resource): self
+    {
+        return new self($resource);
+    }
+
+    /**
+     * Creates a new ResourceUri value object that retrieves the given resource content.
+     */
+    public static function get(string $resource): self
     {
         return new self($resource);
     }
